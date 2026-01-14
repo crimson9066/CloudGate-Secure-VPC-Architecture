@@ -1,0 +1,27 @@
+# Terraform Variables Configuration
+# Copy this file to terraform.tfvars and customize the values
+
+# Project Configuration
+project_name = "cloudgate"
+environment  = "dev"
+
+# AWS Region (me-south-1 is Bahrain - closest to Egypt)
+aws_region = "me-south-1"
+
+# Network Configuration
+vpc_cidr           = "10.0.0.0/16"
+availability_zones = ["me-south-1a", "me-south-1b", "me-south-1c"]
+
+# Security Configuration
+# IMPORTANT: Replace with your actual IP address for security
+# Get your IP: curl ifconfig.me
+allowed_ssh_cidr_blocks = ["0.0.0.0/0"] # CHANGE THIS!
+
+# Bastion Configuration
+bastion_instance_type  = "t3.micro"
+assign_eip_to_bastion  = true
+
+# SSH Public Key
+# Generate with: ssh-keygen -t rsa -b 4096 -f ~/.ssh/cloudgate-bastion
+# Then paste the content of ~/.ssh/cloudgate-bastion.pub below
+bastion_public_key = "ssh-rsa AAAAB3... your-email@example.com" # REPLACE THIS!
