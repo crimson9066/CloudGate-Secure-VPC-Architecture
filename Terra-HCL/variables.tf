@@ -31,7 +31,7 @@ variable "availability_zones" {
 variable "allowed_ssh_cidr_blocks" {
   description = "CIDR blocks allowed to SSH into bastion host"
   type        = list(string)
-  default     = ["0.0.0.0/0"] # CHANGE THIS! Restrict to your IP for security
+  default     = ["0.0.0.0/0"]
 }
 
 variable "bastion_instance_type" {
@@ -43,8 +43,6 @@ variable "bastion_instance_type" {
 variable "bastion_public_key" {
   description = "Public SSH key for bastion host access"
   type        = string
-  # Generate with: ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
-  # Then paste the content of ~/.ssh/id_rsa.pub here
 }
 
 variable "assign_eip_to_bastion" {
