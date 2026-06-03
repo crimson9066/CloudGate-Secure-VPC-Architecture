@@ -48,7 +48,7 @@ This Terraform configuration creates a secure, scalable VPC infrastructure with:
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-## 📋 Prerequisites
+##  Prerequisites
 
 1. **Terraform**: Version >= 1.0
    ```bash
