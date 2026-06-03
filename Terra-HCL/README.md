@@ -144,7 +144,7 @@ ssh -i ~/.ssh/cloudgate-bastion ec2-user@<BASTION_PUBLIC_IP>
 4. **Set up AWS GuardDuty**: Threat detection
 5. **Enable AWS Config**: Compliance monitoring
 
-##📊 Resource Summary
+## Resource Summary
 
 | Resource | Count | Purpose |
 |----------|-------|---------|
