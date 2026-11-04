@@ -12,16 +12,16 @@ aws_region = "me-south-1"
 vpc_cidr           = "10.0.0.0/16"
 availability_zones = ["me-south-1a", "me-south-1b", "me-south-1c"]
 
-# Security Configuration
-# IMPORTANT: Replace with your actual IP address for security
-# Get your IP: curl ifconfig.me
-allowed_ssh_cidr_blocks = ["0.0.0.0/0"] # CHANGE THIS!
+# Administration uses AWS Systems Manager Session Manager; public SSH is disabled.
+bastion_instance_type = "t3.micro"
+assign_eip_to_bastion = false
 
-# Bastion Configuration
-bastion_instance_type  = "t3.micro"
-assign_eip_to_bastion  = true
+# Opt-in observability and security services. These can incur AWS charges.
+enable_vpc_flow_logs      = false
+enable_cloudtrail          = false
+enable_security_services   = false
+enable_ssm_vpc_endpoints   = false
 
-# SSH Public Key
-# Generate with: ssh-keygen -t rsa -b 4096 -f ~/.ssh/cloudgate-bastion
-# Then paste the content of ~/.ssh/cloudgate-bastion.pub below
-bastion_public_key = "ssh-rsa AAAAB3... your-email@example.com" # REPLACE THIS!
+# Optional demonstration workload.
+enable_sample_application = false
+enable_sample_database    = false

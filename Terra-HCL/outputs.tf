@@ -53,7 +53,17 @@ output "private_instances_security_group_id" {
   value       = aws_security_group.private_instances.id
 }
 
-output "bastion_ssh_command" {
-  description = "SSH command to connect to bastion host"
-  value       = "ssh -i ~/.ssh/your-key.pem ec2-user@${var.assign_eip_to_bastion ? aws_eip.bastion[0].public_ip : aws_instance.bastion.public_ip}"
+output "bastion_ssm_command" {
+  description = "AWS CLI command to start a Session Manager shell"
+  value       = "aws ssm start-session --target ${aws_instance.bastion.id} --region ${var.aws_region}"
+}
+
+output "sample_application_url" {
+  description = "URL for the optional sample application"
+  value       = var.enable_sample_application ? "http://${aws_lb.sample_application[0].dns_name}" : null
+}
+
+output "sample_database_endpoint" {
+  description = "Endpoint for the optional private sample database"
+  value       = var.enable_sample_database && var.enable_sample_application ? aws_db_instance.sample[0].address : null
 }

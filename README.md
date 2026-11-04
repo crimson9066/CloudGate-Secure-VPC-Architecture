@@ -1,175 +1,65 @@
 # CloudGate Secure VPC Architecture
 
-A production-grade AWS network infrastructure implementation using Terraform. This project demonstrates cloud architecture best practices with a focus on security, scalability, and maintainability.
+CloudGate is a security-focused AWS network foundation built with Terraform. It demonstrates how cloud infrastructure can be designed, delivered, and continuously checked using DevSecOps practices.
 
-## Overview
+## What this demonstrates
 
-This repository contains Infrastructure as Code (IaC) for deploying a secure Virtual Private Cloud on AWS. The architecture follows AWS Well-Architected Framework principles and implements a common pattern used in production environments: isolated public/private subnets, managed NAT gateway, and secure bastion host access.
+- Multi-AZ public/private subnet segmentation
+- Controlled routing through an Internet Gateway and NAT Gateway
+- IAM-authenticated administration through AWS Systems Manager Session Manager from a private subnet
+- No public SSH ingress by default
+- IMDSv2 enforcement and encrypted EBS
+- Optional private application tier behind a public Application Load Balancer
+- Optional encrypted private PostgreSQL database with Secrets Manager credentials
+- Optional VPC Flow Logs, GuardDuty, Security Hub, AWS Config, and private SSM endpoints
+- Optional multi-region CloudTrail with log-file validation and protected S3 delivery
+- CI security gates using Terraform validation, TFLint, Checkov, Trivy, and Gitleaks
 
-The infrastructure is designed for the Middle East (Bahrain) region but can be adapted to any AWS region with minimal configuration changes.
+See the [architecture](docs/architecture.md) and [threat model](docs/threat-model.md).
 
-## Architecture
+## Repository structure
 
-The network design includes:
-
-- **VPC**: 10.0.0.0/16 CIDR with DNS resolution enabled
-- **Multi-AZ deployment**: Resources distributed across three availability zones for fault tolerance
-- **Public subnets**: Three /24 subnets for internet-facing resources (ALB, bastion, NAT gateway)
-- **Private subnets**: Three /24 subnets for application and database tiers
-- **Internet Gateway**: Direct internet access for public subnet resources
-- **NAT Gateway**: Managed outbound internet access for private subnet resources
-- **Bastion host**: Hardened Amazon Linux 2 instance for secure SSH access to private resources
-- **Security groups**: Least-privilege access controls with configurable IP restrictions
-
-## Technical Implementation
-
-**Infrastructure as Code**: Terraform (HCL)  
-**Cloud Provider**: AWS  
-**Default Region**: me-south-1 (Bahrain)  
-**State Management**: Local state (easily adaptable to remote backend)
-
-### Key Features
-
-- Modular Terraform configuration with separated concerns (networking, security, compute)
-- Automated bastion host hardening through user data scripts
-- IMDSv2 enforcement for enhanced instance metadata security
-- Encrypted EBS volumes
-- Parameterized configuration through variables and tfvars
-- Comprehensive outputs for integration with other infrastructure components
-
-### Security Controls
-
-The implementation includes several security measures:
-
-- SSH key-based authentication only (password auth disabled)
-- Configurable source IP restrictions for SSH access
-- Network segmentation through public/private subnet isolation
-- Security group rules following least-privilege principle
-- Encrypted storage for bastion host
-- Automatic security updates on bastion instance
-
-## Repository Structure
-
-```
-├── Terraform/
-│   ├── main.tf                     # Provider and backend configuration
-│   ├── vpc.tf                      # VPC, subnets, routing tables
-│   ├── security_groups.tf          # Security group definitions
-│   ├── bastion.tf                  # Bastion host configuration
-│   ├── variables.tf                # Input variable definitions
-│   ├── outputs.tf                  # Output value definitions
-│   ├── terraform.tfvars.example    # Example configuration
-│   └── README.md                   # Deployment documentation
-├── cdk-python/                     # Future: CDK implementation
-├── PHASES.md                       # Project roadmap and development phases
-└── README.md                       # This file
+```text
+Terra-HCL/                         Terraform infrastructure
+  vpc.tf                           VPC, subnets, routes, NAT
+  bastion.tf                       SSM-managed administrative instance
+  sample_application.tf            Optional ALB and private ASG
+  sample_database.tf               Optional private PostgreSQL database
+  logging.tf                       Optional VPC Flow Logs
+  security_services.tf             Optional account-level detections
+  ssm_endpoints.tf                 Optional private SSM endpoints
+.github/workflows/                 CI security gates
+docs/                              Architecture and threat model
+SECURITY.md                        Security policy and operating boundaries
 ```
 
 ## Prerequisites
 
-- Terraform >= 1.0
-- AWS CLI configured with appropriate credentials
-- SSH key pair for bastion host access
-- AWS account with permissions for VPC, EC2, and related services
+- Terraform 1.6+
+- AWS CLI credentials with least-privilege deployment permissions
+- An AWS account where optional account-level services are approved
 
-## Deployment
+## Deploy
 
-Detailed deployment instructions are available in the [Terraform README](Terraform/README.md).
-
-Quick start:
-
-```bash
-cd Terraform
-cp terraform.tfvars.example terraform.tfvars
-# Edit terraform.tfvars with your configuration
+```powershell
+cd Terra-HCL
+Copy-Item terraform.tfvars.example terraform.tfvars
+# Edit the region, AZs, and project settings.
 terraform init
+terraform fmt -recursive
+terraform validate
 terraform plan
 terraform apply
 ```
 
-## Configuration
+The example configuration is safe by default: public SSH is rejected, optional security services are disabled, and the sample application is disabled. Enable expensive or account-level features deliberately in a dedicated environment.
 
-The infrastructure is highly configurable through variables. Key parameters include:
+After deployment, use the generated `bastion_ssm_command` output to start an administrative Session Manager shell. The optional application URL is available as `sample_application_url`.
 
-- AWS region and availability zones
-- VPC and subnet CIDR blocks
-- Bastion instance type and SSH key
-- IP whitelist for SSH access
-- Environment tags (dev, staging, production)
+## Engineering controls
 
-See [variables.tf](Terraform/variables.tf) for the complete list of configurable parameters.
+Every pull request runs formatting, Terraform validation, linting, IaC scanning, vulnerability scanning, and secret detection. Shared environments should use an encrypted remote state backend with locking, short-lived GitHub Actions OIDC credentials, separate AWS accounts or roles per environment, and required pull-request approvals.
 
-## Cost Considerations
+## Cost and production boundary
 
-Approximate monthly cost in me-south-1 region:
-
-- NAT Gateway: ~$33/month (plus data processing fees)
-- Bastion host (t3.micro): ~$8/month
-- Elastic IPs: No charge when attached
-- Data transfer: Variable based on usage
-
-Total baseline cost is roughly $40-50/month excluding data transfer. For development environments, costs can be reduced by stopping the bastion host when not in use.
-
-## Project Status
-
-This project is currently in Phase 1 (Foundation Infrastructure). The network layer is complete and functional. See [PHASES.md](PHASES.md) for the development roadmap and planned features.
-
-### Current Capabilities
-
-- Fully functional multi-AZ VPC with public/private subnet isolation
-- Secure SSH access through hardened bastion host
-- Internet connectivity for both public resources (direct) and private resources (via NAT)
-- Production-ready network foundation
-
-### Planned Enhancements
-
-- Application tier deployment (EC2/ECS)
-- Database layer (RDS Multi-AZ)
-- Load balancing and auto-scaling
-- Comprehensive monitoring and logging (VPC Flow Logs, CloudWatch, GuardDuty)
-- CI/CD pipeline integration
-- Multi-region deployment capabilities
-
-## Use Cases
-
-This infrastructure serves as a foundation for:
-
-- Web applications requiring secure database access
-- Multi-tier applications with clear network separation
-- Development/staging environments that mirror production architecture
-- Learning and demonstrating cloud architecture best practices
-- Starting point for more complex AWS deployments
-
-## Skills Demonstrated
-
-- Infrastructure as Code using Terraform
-- AWS networking concepts (VPC, subnets, routing, NAT)
-- Cloud security best practices
-- Multi-AZ architecture for high availability
-- Parameterized and reusable IaC modules
-- Documentation and project organization
-
-## Future Development
-
-The project roadmap includes:
-
-- Converting infrastructure to AWS CDK (Python) for comparison
-- Implementing application and database tiers
-- Adding comprehensive monitoring and alerting
-- Setting up automated backups and disaster recovery
-- Implementing CI/CD pipelines
-- Multi-region deployment with failover capabilities
-
-See [PHASES.md](PHASES.md) for detailed information on each development phase.
-
-## License
-
-This project is available for educational and portfolio purposes.
-
-## Contact
-
-This project was developed to demonstrate cloud infrastructure skills and AWS best practices. Feel free to review the code and infrastructure design.
-
----
-
-**Note**: This is a demonstration project. The configuration includes placeholder values that should be customized before production use, particularly security-related settings like SSH IP restrictions and key pairs.
+NAT gateways, VPC endpoints, flow-log delivery, GuardDuty, Security Hub, Config, and the sample application can incur AWS charges. They are opt-in where practical. This repository is a portfolio demonstration and requires organization-specific controls, alerting, backups, and incident-response procedures before production use.

@@ -1,0 +1,12 @@
+# Copy this configuration into a backend block in main.tf for shared environments.
+# The bucket must already exist, use versioning and encryption, and deny public access.
+#
+# terraform {
+#   backend "s3" {
+#     bucket       = "cloudgate-terraform-state"
+#     key          = "cloudgate/dev/terraform.tfstate"
+#     region       = "me-south-1"
+#     use_lockfile = true
+#     encrypt      = true
+#   }
+# }

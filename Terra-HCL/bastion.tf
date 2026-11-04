@@ -1,10 +1,10 @@
-data "aws_ami" "amazon_linux_2" {
+data "aws_ami" "amazon_linux_2023" {
   most_recent = true
   owners      = ["amazon"]
 
   filter {
     name   = "name"
-    values = ["amzn2-ami-hvm-*-x86_64-gp2"]
+    values = ["al2023-ami-2023*-x86_64"]
   }
 
   filter {
@@ -18,24 +18,36 @@ data "aws_ami" "amazon_linux_2" {
   }
 }
 
-resource "aws_key_pair" "bastion" {
-  key_name   = "${var.project_name}-bastion-key"
-  public_key = var.bastion_public_key
+resource "aws_iam_role" "bastion" {
+  name = "${var.project_name}-bastion-ssm-role"
 
-  tags = {
-    Name = "${var.project_name}-bastion-key"
-  }
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Service = "ec2.amazonaws.com" }
+      Action    = "sts:AssumeRole"
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "bastion_ssm" {
+  role       = aws_iam_role.bastion.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+resource "aws_iam_instance_profile" "bastion" {
+  name = "${var.project_name}-bastion-profile"
+  role = aws_iam_role.bastion.name
 }
 
 resource "aws_instance" "bastion" {
-  ami           = data.aws_ami.amazon_linux_2.id
-  instance_type = var.bastion_instance_type
-  subnet_id     = aws_subnet.public[0].id
-
+  ami                    = data.aws_ami.amazon_linux_2023.id
+  instance_type          = var.bastion_instance_type
+  subnet_id              = var.assign_eip_to_bastion ? aws_subnet.public[0].id : aws_subnet.private[0].id
   vpc_security_group_ids = [aws_security_group.bastion.id]
-  key_name               = aws_key_pair.bastion.key_name
-
-  monitoring = true
+  iam_instance_profile   = aws_iam_instance_profile.bastion.name
+  monitoring             = true
 
   disable_api_termination = var.environment == "production" ? true : false
 
@@ -48,18 +60,9 @@ resource "aws_instance" "bastion" {
 
   user_data = <<-EOF
               #!/bin/bash
-              yum update -y
-              
-              yum install -y htop vim tmux
-              
-              yum install -y yum-cron
-              systemctl enable yum-cron
-              systemctl start yum-cron
-              
-              sed -i 's/#PermitRootLogin yes/PermitRootLogin no/' /etc/ssh/sshd_config
-              sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config
-              systemctl restart sshd
-              
+              dnf update -y
+              dnf install -y htop vim tmux
+              systemctl enable --now amazon-ssm-agent
               hostnamectl set-hostname ${var.project_name}-bastion
               EOF
 
